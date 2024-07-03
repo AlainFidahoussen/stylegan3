@@ -75,6 +75,7 @@ def launch_training(c, desc, outdir, dry_run):
     print(f'Dataset resolution:  {c.training_set_kwargs.resolution}')
     print(f'Dataset labels:      {c.training_set_kwargs.use_labels}')
     print(f'Dataset x-flips:     {c.training_set_kwargs.xflip}')
+    print(f'Dataset y-flips:     {c.training_set_kwargs.yflip}')
     print()
 
     # Dry run?
@@ -101,7 +102,7 @@ def launch_training(c, desc, outdir, dry_run):
 
 def init_dataset_kwargs(data):
     try:
-        dataset_kwargs = dnnlib.EasyDict(class_name='training.dataset.ImageFolderDataset', path=data, use_labels=True, max_size=None, xflip=False)
+        dataset_kwargs = dnnlib.EasyDict(class_name='training.dataset.ImageFolderDataset', path=data, use_labels=True, max_size=None, xflip=False, yflip=False)
         dataset_obj = dnnlib.util.construct_class_by_name(**dataset_kwargs) # Subclass of training.dataset.Dataset.
         dataset_kwargs.resolution = dataset_obj.resolution # Be explicit about resolution.
         dataset_kwargs.use_labels = dataset_obj.has_labels # Be explicit about labels.
@@ -133,7 +134,8 @@ def parse_comma_separated_list(s):
 
 # Optional features.
 @click.option('--cond',         help='Train conditional model', metavar='BOOL',                 type=bool, default=False, show_default=True)
-@click.option('--mirror',       help='Enable dataset x-flips', metavar='BOOL',                  type=bool, default=False, show_default=True)
+@click.option('--mirrorx',      help='Enable dataset x-flips', metavar='BOOL',                  type=bool, default=False, show_default=True)
+@click.option('--mirrory',      help='Enable dataset y-flips', metavar='BOOL',                  type=bool, default=False, show_default=True)
 @click.option('--aug',          help='Augmentation mode',                                       type=click.Choice(['noaug', 'ada', 'fixed']), default='ada', show_default=True)
 @click.option('--resume',       help='Resume from given network pickle', metavar='[PATH|URL]',  type=str)
 @click.option('--freezed',      help='Freeze first layers of D', metavar='INT',                 type=click.IntRange(min=0), default=0, show_default=True)
@@ -170,18 +172,18 @@ def main(**kwargs):
     \b
     # Train StyleGAN3-T for AFHQv2 using 8 GPUs.
     python train.py --outdir=~/training-runs --cfg=stylegan3-t --data=~/datasets/afhqv2-512x512.zip \\
-        --gpus=8 --batch=32 --gamma=8.2 --mirror=1
+        --gpus=8 --batch=32 --gamma=8.2 --mirrorx=1
 
     \b
     # Fine-tune StyleGAN3-R for MetFaces-U using 1 GPU, starting from the pre-trained FFHQ-U pickle.
     python train.py --outdir=~/training-runs --cfg=stylegan3-r --data=~/datasets/metfacesu-1024x1024.zip \\
-        --gpus=8 --batch=32 --gamma=6.6 --mirror=1 --kimg=5000 --snap=5 \\
+        --gpus=8 --batch=32 --gamma=6.6 --mirrorx=1 --kimg=5000 --snap=5 \\
         --resume=https://api.ngc.nvidia.com/v2/models/nvidia/research/stylegan3/versions/1/files/stylegan3-r-ffhqu-1024x1024.pkl
 
     \b
     # Train StyleGAN2 for FFHQ at 1024x1024 resolution using 8 GPUs.
     python train.py --outdir=~/training-runs --cfg=stylegan2 --data=~/datasets/ffhq-1024x1024.zip \\
-        --gpus=8 --batch=32 --gamma=10 --mirror=1 --aug=noaug
+        --gpus=8 --batch=32 --gamma=10 --mirrorx=1 --aug=noaug
     """
 
     # Initialize config.
@@ -199,7 +201,8 @@ def main(**kwargs):
     if opts.cond and not c.training_set_kwargs.use_labels:
         raise click.ClickException('--cond=True requires labels specified in dataset.json')
     c.training_set_kwargs.use_labels = opts.cond
-    c.training_set_kwargs.xflip = opts.mirror
+    c.training_set_kwargs.xflip = opts.mirrorx
+    c.training_set_kwargs.yflip = opts.mirrory
 
     # Hyperparameters & settings.
     c.num_gpus = opts.gpus
@@ -252,7 +255,7 @@ def main(**kwargs):
 
     # Augmentation.
     if opts.aug != 'noaug':
-        c.augment_kwargs = dnnlib.EasyDict(class_name='training.augment.AugmentPipe', xflip=1, rotate90=1, xint=1, scale=1, rotate=1, aniso=1, xfrac=1, brightness=1, contrast=1, lumaflip=1, hue=1, saturation=1)
+        c.augment_kwargs = dnnlib.EasyDict(class_name='training.augment.AugmentPipe', xflip=1, yflip=1, rotate90=1, xint=1, scale=1, rotate=1, aniso=1, xfrac=1, brightness=1, contrast=1, lumaflip=1, hue=1, saturation=1)
         if opts.aug == 'ada':
             c.ada_target = opts.target
         if opts.aug == 'fixed':
