@@ -186,16 +186,16 @@ You can train new networks using `train.py`. For example:
 ```.bash
 # Train StyleGAN3-T for AFHQv2 using 8 GPUs.
 python train.py --outdir=~/training-runs --cfg=stylegan3-t --data=~/datasets/afhqv2-512x512.zip \
-    --gpus=8 --batch=32 --gamma=8.2 --mirror=1
+    --gpus=8 --batch=32 --gamma=8.2 --mirrorx=1
 
 # Fine-tune StyleGAN3-R for MetFaces-U using 1 GPU, starting from the pre-trained FFHQ-U pickle.
 python train.py --outdir=~/training-runs --cfg=stylegan3-r --data=~/datasets/metfacesu-1024x1024.zip \
-    --gpus=8 --batch=32 --gamma=6.6 --mirror=1 --kimg=5000 --snap=5 \
+    --gpus=8 --batch=32 --gamma=6.6 --mirrorx=1 --kimg=5000 --snap=5 \
     --resume=https://api.ngc.nvidia.com/v2/models/nvidia/research/stylegan3/versions/1/files/stylegan3-r-ffhqu-1024x1024.pkl
 
 # Train StyleGAN2 for FFHQ at 1024x1024 resolution using 8 GPUs.
 python train.py --outdir=~/training-runs --cfg=stylegan2 --data=~/datasets/ffhq-1024x1024.zip \
-    --gpus=8 --batch=32 --gamma=10 --mirror=1 --aug=noaug
+    --gpus=8 --batch=32 --gamma=10 --mirrorx=1 --aug=noaug
 ```
 
 Note that the result quality and training time depend heavily on the exact set of options. The most important ones (`--gpus`, `--batch`, and `--gamma`) must be specified explicitly, and they should be selected with care. See [`python train.py --help`](./docs/train-help.txt) for the full list of options and [Training configurations](./docs/configs.md) for general guidelines &amp; recommendations, along with the expected training speed &amp; memory usage in different scenarios.
@@ -214,11 +214,11 @@ python calc_metrics.py --metrics=eqt50k_int,eqr50k \
     --network=~/training-runs/00000-stylegan3-r-mydataset/network-snapshot-000000.pkl
 
 # Pre-trained network pickle: specify dataset explicitly, print result to stdout.
-python calc_metrics.py --metrics=fid50k_full --data=~/datasets/ffhq-1024x1024.zip --mirror=1 \
+python calc_metrics.py --metrics=fid50k_full --data=~/datasets/ffhq-1024x1024.zip --mirrorx=1 \
     --network=https://api.ngc.nvidia.com/v2/models/nvidia/research/stylegan3/versions/1/files/stylegan3-t-ffhq-1024x1024.pkl
 ```
 
-The first example looks up the training configuration and performs the same operation as if `--metrics=eqt50k_int,eqr50k` had been specified during training. The second example downloads a pre-trained network pickle, in which case the values of `--data` and `--mirror` must be specified explicitly.
+The first example looks up the training configuration and performs the same operation as if `--metrics=eqt50k_int,eqr50k` had been specified during training. The second example downloads a pre-trained network pickle, in which case the values of `--data` and `--mirrorx` must be specified explicitly.
 
 Note that the metrics can be quite expensive to compute (up to 1h), and many of them have an additional one-off cost for each new dataset (up to 30min). Also note that the evaluation is done using a different random seed each time, so the results will vary if the same metric is computed multiple times.
 

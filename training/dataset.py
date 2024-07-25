@@ -30,6 +30,7 @@ class Dataset(torch.utils.data.Dataset):
         max_size    = None,     # Artificially limit the size of the dataset. None = no limit. Applied before xflip.
         use_labels  = False,    # Enable conditioning labels? False = label dimension is zero.
         xflip       = False,    # Artificially double the size of the dataset via x-flips. Applied after max_size.
+        yflip       = False,    # Artificially double the size of the dataset via y-flips. Applied after max_size.
         random_seed = 0,        # Random seed to use when applying max_size.
     ):
         self._name = name
@@ -44,11 +45,26 @@ class Dataset(torch.utils.data.Dataset):
             np.random.RandomState(random_seed).shuffle(self._raw_idx)
             self._raw_idx = np.sort(self._raw_idx[:max_size])
 
-        # Apply xflip.
-        self._xflip = np.zeros(self._raw_idx.size, dtype=np.uint8)
-        if xflip:
+        # 0 --> no flip
+        # 1 --> xflip
+        # 2 --> yflip
+        # 3 --> xflip and yflip
+
+        # Apply xflip only.
+        self._xyflip = np.zeros(self._raw_idx.size, dtype=np.uint8)
+        if (xflip) and (not yflip):
             self._raw_idx = np.tile(self._raw_idx, 2)
-            self._xflip = np.concatenate([self._xflip, np.ones_like(self._xflip)])
+            self._xyflip = np.concatenate([self._xyflip, np.ones_like(self._xyflip)])
+
+        # Apply yflip only.
+        elif (not xflip) and (yflip):
+            self._raw_idx = np.tile(self._raw_idx, 2)
+            self._xyflip = np.concatenate([self._xyflip, 2*np.ones_like(self._xyflip)])
+
+        # Apply xflip and yflip.
+        elif xflip and yflip:
+            self._raw_idx = np.tile(self._raw_idx, 4)
+            self._xyflip = np.concatenate([self._xyflip, np.ones_like(self._xyflip), 2*np.ones_like(self._xyflip), 3*np.ones_like(self._xyflip)])
 
     def _get_raw_labels(self):
         if self._raw_labels is None:
@@ -89,9 +105,16 @@ class Dataset(torch.utils.data.Dataset):
         assert isinstance(image, np.ndarray)
         assert list(image.shape) == self.image_shape
         assert image.dtype == np.uint8
-        if self._xflip[idx]:
+        if self._xyflip[idx] == 1:
             assert image.ndim == 3 # CHW
             image = image[:, :, ::-1]
+        elif self._xyflip[idx] == 2:
+            assert image.ndim == 3
+            image = image[:, ::-1, :]
+        elif self._xyflip[idx] == 3:
+            assert image.ndim == 3
+            image = image[:, ::-1, ::-1]    
+
         return image.copy(), self.get_label(idx)
 
     def get_label(self, idx):
@@ -105,7 +128,7 @@ class Dataset(torch.utils.data.Dataset):
     def get_details(self, idx):
         d = dnnlib.EasyDict()
         d.raw_idx = int(self._raw_idx[idx])
-        d.xflip = (int(self._xflip[idx]) != 0)
+        d._xyflip = (int(self._xflip[idx]) != 0)
         d.raw_label = self._get_raw_labels()[d.raw_idx].copy()
         return d
 

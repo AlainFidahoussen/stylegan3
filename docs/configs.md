@@ -8,14 +8,14 @@ In the remainder of this document, we summarize each configuration as follows:
 
 | <sub>Config</sub><br><br>    | <sub>s/kimg</sub><br><sup>(V100)</sup> | <sub>s/kimg</sub><br><sup>(A100)</sup> | <sub>GPU</sub><br><sup>mem</sup> | <sub>Options</sub><br><br>
 | :--------------------------- | :--------------: | :--------------: | :------------: | :--
-| <sub>StyleGAN3&#8209;T</sub> | <sub>18.47</sub> | <sub>12.29</sub> | <sub>4.3</sub> | <sub>`--cfg=stylegan3-t --gpus=8 --batch=32 --gamma=8.2 --mirror=1`</sub>
+| <sub>StyleGAN3&#8209;T</sub> | <sub>18.47</sub> | <sub>12.29</sub> | <sub>4.3</sub> | <sub>`--cfg=stylegan3-t --gpus=8 --batch=32 --gamma=8.2 --mirrorx=1`</sub>
 
 This corresponds to the following command line:
 
 ```.bash
 # Train StyleGAN3-T for AFHQv2 using 8 GPUs.
 python train.py --outdir=~/training-runs --cfg=stylegan3-t --data=~/datasets/afhqv2-512x512.zip \
-  --gpus=8 --batch=32 --gamma=8.2 --mirror=1
+  --gpus=8 --batch=32 --gamma=8.2 --mirrorx=1
 ```
 
 Explanation of the columns:
@@ -40,7 +40,7 @@ In practice, we recommend selecting the value of `--gamma` as follows:
 - Then, try increasing the value by 2x and 4x, and also decreasing it by 2x and 4x.
 - Pick the value that yields the lowest FID.
 
-The results may also be improved by adjusting `--mirror` and `--aug`, depending on the training data. Specifying `--mirror=1` augments the dataset with random *x*-flips, which effectively doubles the number of images. This is generally beneficial with datasets that are horizontally symmetric (e.g., FFHQ), but it can be harmful if the images contain noticeable asymmetric features (e.g., text or letters). Specifying `--aug=noaug` disables adaptive discriminator augmentation (ADA), which may improve the results slightly if the training set is large enough (at least 100k images when accounting for *x*-flips). With small datasets (less than 30k images), it is generally a good idea to leave the augmentations enabled.
+The results may also be improved by adjusting `--mirrorx` and `--aug`, depending on the training data. Specifying `--mirrorx=1` augments the dataset with random *x*-flips, which effectively doubles the number of images. Specifying `--mirrory=1` augments the dataset with random *y*-flips, which effectively doubles the number of images. This is generally beneficial with datasets that are horizontally symmetric (e.g., FFHQ), but it can be harmful if the images contain noticeable asymmetric features (e.g., text or letters). Specifying `--aug=noaug` disables adaptive discriminator augmentation (ADA), which may improve the results slightly if the training set is large enough (at least 100k images when accounting for *x*-flips). With small datasets (less than 30k images), it is generally a good idea to leave the augmentations enabled.
 
 It is possible to speed up the training by decreasing network capacity, i.e., `--cbase=16384`. This typically leads to lower quality results, but the difference is less pronounced with low-resolution datasets (e.g., 256x256).
 
@@ -59,17 +59,17 @@ Transfer learning makes it possible to reach very good results very quickly, esp
 ```.bash
 # Fine-tune StyleGAN3-R for MetFaces-U using 1 GPU, starting from the pre-trained FFHQ-U pickle.
 python train.py --outdir=~/training-runs --cfg=stylegan3-r --data=~/datasets/metfacesu-1024x1024.zip \
-    --gpus=8 --batch=32 --gamma=6.6 --mirror=1 --kimg=5000 --snap=5 \
+    --gpus=8 --batch=32 --gamma=6.6 --mirrorx=1 --kimg=5000 --snap=5 \
     --resume=https://api.ngc.nvidia.com/v2/models/nvidia/research/stylegan3/versions/1/files/stylegan3-r-ffhqu-1024x1024.pkl
 ```
 
 The pre-trained model should be selected to match the specified config, resolution, and architecture-related hyperparameters (e.g., `--cbase`, `--map-depth`, and `--mbstd-group`). You check this by looking at the `fakes_init.png` exported by `train.py` at the beginning; if the configuration is correct, the images should look reasonable.
 
-With transfer learning, the results may be improved slightly by adjusting `--freezed`, in addition to the above guidelines for `--gamma`, `--mirror`, and `--aug`. In our experience, `--freezed=10` and `--freezed=13` tend to work reasonably well.
+With transfer learning, the results may be improved slightly by adjusting `--freezed`, in addition to the above guidelines for `--gamma`, `--mirrorx`, and `--aug`. In our experience, `--freezed=10` and `--freezed=13` tend to work reasonably well.
 
 ## Recommended configurations
 
-This section lists recommended settings for StyleGAN3-T and StyleGAN3-R for different resolutions and GPU counts, selected according to the above guidelines. These are intended to provide a good starting point when experimenting with a new dataset. Please note that many of the options (e.g., `--gamma`, `--mirror`, and `--aug`) are still worth adjusting on a case-by-case basis.
+This section lists recommended settings for StyleGAN3-T and StyleGAN3-R for different resolutions and GPU counts, selected according to the above guidelines. These are intended to provide a good starting point when experimenting with a new dataset. Please note that many of the options (e.g., `--gamma`, `--mirrorx`, and `--aug`) are still worth adjusting on a case-by-case basis.
 
 #### 128x128 resolution
 
@@ -131,41 +131,41 @@ This section lists the exact settings that we used in the "Alias-Free Generative
 
 | <sub>Config</sub><br><br>    | <sub>s/kimg</sub><br><sup>(V100)</sup> | <sub>s/kimg</sub><br><sup>(A100)</sup> | <sub>GPU</sub><br><sup>mem</sup> | <sub>Options</sub><br><br>
 | :--------------------------- | :--------------: | :--------------: | :------------: | :--
-| <sub>StyleGAN2</sub>         | <sub>17.55</sub> | <sub>14.57</sub> | <sub>6.2</sub> | <sub>`--cfg=stylegan2 --gpus=8 --batch=32 --gamma=10 --mirror=1 --aug=noaug`</sub>
-| <sub>StyleGAN3&#8209;T</sub> | <sub>28.71</sub> | <sub>20.01</sub> | <sub>6.6</sub> | <sub>`--cfg=stylegan3-t --gpus=8 --batch=32 --gamma=32.8 --mirror=1 --aug=noaug`</sub>
-| <sub>StyleGAN3&#8209;R</sub> | <sub>34.12</sub> | <sub>23.42</sub> | <sub>9.9</sub> | <sub>`--cfg=stylegan3-r --gpus=8 --batch=32 --gamma=32.8 --mirror=1 --aug=noaug`</sub>
+| <sub>StyleGAN2</sub>         | <sub>17.55</sub> | <sub>14.57</sub> | <sub>6.2</sub> | <sub>`--cfg=stylegan2 --gpus=8 --batch=32 --gamma=10 --mirrorx=1 --aug=noaug`</sub>
+| <sub>StyleGAN3&#8209;T</sub> | <sub>28.71</sub> | <sub>20.01</sub> | <sub>6.6</sub> | <sub>`--cfg=stylegan3-t --gpus=8 --batch=32 --gamma=32.8 --mirrorx=1 --aug=noaug`</sub>
+| <sub>StyleGAN3&#8209;R</sub> | <sub>34.12</sub> | <sub>23.42</sub> | <sub>9.9</sub> | <sub>`--cfg=stylegan3-r --gpus=8 --batch=32 --gamma=32.8 --mirrorx=1 --aug=noaug`</sub>
 
 #### MetFaces-U at 1024x1024 resolution
 
 | <sub>Config</sub><br><br>    | <sub>s/kimg</sub><br><sup>(V100)</sup> | <sub>s/kimg</sub><br><sup>(A100)</sup> | <sub>GPU</sub><br><sup>mem</sup> | <sub>Options</sub><br><br>
 | :--------------------------- | :--------------: | :--------------: | :-------------: | :--
-| <sub>StyleGAN2</sub>         | <sub>18.74</sub> | <sub>11.80</sub> | <sub>7.4</sub>  | <sub>`--cfg=stylegan2 --gpus=8 --batch=32 --gamma=10 --mirror=1 --kimg=5000 --snap=10 --resume=https://api.ngc.nvidia.com/v2/models/nvidia/research/stylegan2/versions/1/files/stylegan2-ffhqu-1024x1024.pkl`</sub>
-| <sub>StyleGAN3&#8209;T</sub> | <sub>29.84</sub> | <sub>21.06</sub> | <sub>7.7</sub>  | <sub>`--cfg=stylegan3-t --gpus=8 --batch=32 --gamma=16.4 --mirror=1 --kimg=5000 --snap=10 --resume=https://api.ngc.nvidia.com/v2/models/nvidia/research/stylegan3/versions/1/files/stylegan3-t-ffhqu-1024x1024.pkl`</sub>
-| <sub>StyleGAN3&#8209;R</sub> | <sub>35.10</sub> | <sub>24.32</sub> | <sub>10.9</sub> | <sub>`--cfg=stylegan3-r --gpus=8 --batch=32 --gamma=6.6 --mirror=1 --kimg=5000 --snap=10 --resume=https://api.ngc.nvidia.com/v2/models/nvidia/research/stylegan3/versions/1/files/stylegan3-r-ffhqu-1024x1024.pkl`</sub>
+| <sub>StyleGAN2</sub>         | <sub>18.74</sub> | <sub>11.80</sub> | <sub>7.4</sub>  | <sub>`--cfg=stylegan2 --gpus=8 --batch=32 --gamma=10 --mirrorx=1 --kimg=5000 --snap=10 --resume=https://api.ngc.nvidia.com/v2/models/nvidia/research/stylegan2/versions/1/files/stylegan2-ffhqu-1024x1024.pkl`</sub>
+| <sub>StyleGAN3&#8209;T</sub> | <sub>29.84</sub> | <sub>21.06</sub> | <sub>7.7</sub>  | <sub>`--cfg=stylegan3-t --gpus=8 --batch=32 --gamma=16.4 --mirrorx=1 --kimg=5000 --snap=10 --resume=https://api.ngc.nvidia.com/v2/models/nvidia/research/stylegan3/versions/1/files/stylegan3-t-ffhqu-1024x1024.pkl`</sub>
+| <sub>StyleGAN3&#8209;R</sub> | <sub>35.10</sub> | <sub>24.32</sub> | <sub>10.9</sub> | <sub>`--cfg=stylegan3-r --gpus=8 --batch=32 --gamma=6.6 --mirrorx=1 --kimg=5000 --snap=10 --resume=https://api.ngc.nvidia.com/v2/models/nvidia/research/stylegan3/versions/1/files/stylegan3-r-ffhqu-1024x1024.pkl`</sub>
 
 #### MetFaces at 1024x1024 resolution
 
 | <sub>Config</sub><br><br>    | <sub>s/kimg</sub><br><sup>(V100)</sup> | <sub>s/kimg</sub><br><sup>(A100)</sup> | <sub>GPU</sub><br><sup>mem</sup> | <sub>Options</sub><br><br>
 | :--------------------------- | :--------------: | :--------------: | :-------------: | :--
-| <sub>StyleGAN2</sub>         | <sub>18.74</sub> | <sub>11.80</sub> | <sub>7.4</sub>  | <sub>`--cfg=stylegan2 --gpus=8 --batch=32 --gamma=5 --mirror=1 --kimg=5000 --snap=10 --resume=https://api.ngc.nvidia.com/v2/models/nvidia/research/stylegan2/versions/1/files/stylegan2-ffhq-1024x1024.pkl`</sub>
-| <sub>StyleGAN3&#8209;T</sub> | <sub>29.84</sub> | <sub>21.06</sub> | <sub>7.7</sub>  | <sub>`--cfg=stylegan3-t --gpus=8 --batch=32 --gamma=6.6 --mirror=1 --kimg=5000 --snap=10 --resume=https://api.ngc.nvidia.com/v2/models/nvidia/research/stylegan3/versions/1/files/stylegan3-t-ffhq-1024x1024.pkl`</sub>
-| <sub>StyleGAN3&#8209;R</sub> | <sub>35.10</sub> | <sub>24.32</sub> | <sub>10.9</sub> | <sub>`--cfg=stylegan3-r --gpus=8 --batch=32 --gamma=3.3 --mirror=1 --kimg=5000 --snap=10 --resume=https://api.ngc.nvidia.com/v2/models/nvidia/research/stylegan3/versions/1/files/stylegan3-r-ffhq-1024x1024.pkl`</sub>
+| <sub>StyleGAN2</sub>         | <sub>18.74</sub> | <sub>11.80</sub> | <sub>7.4</sub>  | <sub>`--cfg=stylegan2 --gpus=8 --batch=32 --gamma=5 --mirrorx=1 --kimg=5000 --snap=10 --resume=https://api.ngc.nvidia.com/v2/models/nvidia/research/stylegan2/versions/1/files/stylegan2-ffhq-1024x1024.pkl`</sub>
+| <sub>StyleGAN3&#8209;T</sub> | <sub>29.84</sub> | <sub>21.06</sub> | <sub>7.7</sub>  | <sub>`--cfg=stylegan3-t --gpus=8 --batch=32 --gamma=6.6 --mirrorx=1 --kimg=5000 --snap=10 --resume=https://api.ngc.nvidia.com/v2/models/nvidia/research/stylegan3/versions/1/files/stylegan3-t-ffhq-1024x1024.pkl`</sub>
+| <sub>StyleGAN3&#8209;R</sub> | <sub>35.10</sub> | <sub>24.32</sub> | <sub>10.9</sub> | <sub>`--cfg=stylegan3-r --gpus=8 --batch=32 --gamma=3.3 --mirrorx=1 --kimg=5000 --snap=10 --resume=https://api.ngc.nvidia.com/v2/models/nvidia/research/stylegan3/versions/1/files/stylegan3-r-ffhq-1024x1024.pkl`</sub>
 
 #### AFHQv2 at 512x512 resolution
 
 | <sub>Config</sub><br><br>    | <sub>s/kimg</sub><br><sup>(V100)</sup> | <sub>s/kimg</sub><br><sup>(A100)</sup> | <sub>GPU</sub><br><sup>mem</sup> | <sub>Options</sub><br><br>
 | :--------------------------- | :--------------: | :--------------: | :------------: | :--
-| <sub>StyleGAN2</sub>         | <sub>10.90</sub> | <sub>6.60</sub>  | <sub>3.9</sub> | <sub>`--cfg=stylegan2 --gpus=8 --batch=32 --gamma=5 --mirror=1`</sub>
-| <sub>StyleGAN3&#8209;T</sub> | <sub>18.47</sub> | <sub>12.29</sub> | <sub>4.3</sub> | <sub>`--cfg=stylegan3-t --gpus=8 --batch=32 --gamma=8.2 --mirror=1`</sub>
-| <sub>StyleGAN3&#8209;R</sub> | <sub>20.44</sub> | <sub>14.04</sub> | <sub>5.9</sub> | <sub>`--cfg=stylegan3-r --gpus=8 --batch=32 --gamma=16.4 --mirror=1`</sub>
+| <sub>StyleGAN2</sub>         | <sub>10.90</sub> | <sub>6.60</sub>  | <sub>3.9</sub> | <sub>`--cfg=stylegan2 --gpus=8 --batch=32 --gamma=5 --mirrorx=1`</sub>
+| <sub>StyleGAN3&#8209;T</sub> | <sub>18.47</sub> | <sub>12.29</sub> | <sub>4.3</sub> | <sub>`--cfg=stylegan3-t --gpus=8 --batch=32 --gamma=8.2 --mirrorx=1`</sub>
+| <sub>StyleGAN3&#8209;R</sub> | <sub>20.44</sub> | <sub>14.04</sub> | <sub>5.9</sub> | <sub>`--cfg=stylegan3-r --gpus=8 --batch=32 --gamma=16.4 --mirrorx=1`</sub>
 
 #### FFHQ-U ablations at 256x256 resolution
 
 | <sub>Config</sub><br><br>    | <sub>s/kimg</sub><br><sup>(V100)</sup> | <sub>s/kimg</sub><br><sup>(A100)</sup> | <sub>GPU</sub><br><sup>mem</sup> | <sub>Options</sub><br><br>
 | :--------------------------- | :-------------: | :-------------: | :------------: | :--
-| <sub>StyleGAN2</sub>         | <sub>3.61</sub> | <sub>2.19</sub> | <sub>2.7</sub> | <sub>`--cfg=stylegan2 --gpus=8 --batch=64 --gamma=1 --mirror=1 --aug=noaug --cbase=16384 --glr=0.0025 --dlr=0.0025 --mbstd-group=8`</sub>
-| <sub>StyleGAN3&#8209;T</sub> | <sub>7.40</sub> | <sub>3.74</sub> | <sub>3.5</sub> | <sub>`--cfg=stylegan3-t --gpus=8 --batch=64 --gamma=1 --mirror=1 --aug=noaug --cbase=16384 --dlr=0.0025`</sub>
-| <sub>StyleGAN3&#8209;R</sub> | <sub>6.71</sub> | <sub>4.81</sub> | <sub>4.2</sub> | <sub>`--cfg=stylegan3-r --gpus=8 --batch=64 --gamma=1 --mirror=1 --aug=noaug --cbase=16384 --dlr=0.0025`</sub>
+| <sub>StyleGAN2</sub>         | <sub>3.61</sub> | <sub>2.19</sub> | <sub>2.7</sub> | <sub>`--cfg=stylegan2 --gpus=8 --batch=64 --gamma=1 --mirrorx=1 --aug=noaug --cbase=16384 --glr=0.0025 --dlr=0.0025 --mbstd-group=8`</sub>
+| <sub>StyleGAN3&#8209;T</sub> | <sub>7.40</sub> | <sub>3.74</sub> | <sub>3.5</sub> | <sub>`--cfg=stylegan3-t --gpus=8 --batch=64 --gamma=1 --mirrorx=1 --aug=noaug --cbase=16384 --dlr=0.0025`</sub>
+| <sub>StyleGAN3&#8209;R</sub> | <sub>6.71</sub> | <sub>4.81</sub> | <sub>4.2</sub> | <sub>`--cfg=stylegan3-r --gpus=8 --batch=64 --gamma=1 --mirrorx=1 --aug=noaug --cbase=16384 --dlr=0.0025`</sub>
 
 ## Old StyleGAN2-ADA configurations
 

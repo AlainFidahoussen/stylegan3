@@ -90,11 +90,12 @@ def parse_comma_separated_list(s):
 @click.option('network_pkl', '--network', help='Network pickle filename or URL', metavar='PATH', required=True)
 @click.option('--metrics', help='Quality metrics', metavar='[NAME|A,B,C|none]', type=parse_comma_separated_list, default='fid50k_full', show_default=True)
 @click.option('--data', help='Dataset to evaluate against  [default: look up]', metavar='[ZIP|DIR]')
-@click.option('--mirror', help='Enable dataset x-flips  [default: look up]', type=bool, metavar='BOOL')
+@click.option('--mirrorx', help='Enable dataset x-flips  [default: look up]', type=bool, metavar='BOOL')
+@click.option('--mirrory', help='Enable dataset y-flips  [default: look up]', type=bool, metavar='BOOL')
 @click.option('--gpus', help='Number of GPUs to use', type=int, default=1, metavar='INT', show_default=True)
 @click.option('--verbose', help='Print optional information', type=bool, default=True, metavar='BOOL', show_default=True)
 
-def calc_metrics(ctx, network_pkl, metrics, data, mirror, gpus, verbose):
+def calc_metrics(ctx, network_pkl, metrics, data, mirrorx, mirrory, gpus, verbose):
     """Calculate quality metrics for previous training run or pretrained network pickle.
 
     Examples:
@@ -106,7 +107,7 @@ def calc_metrics(ctx, network_pkl, metrics, data, mirror, gpus, verbose):
 
     \b
     # Pre-trained network pickle: specify dataset explicitly, print result to stdout.
-    python calc_metrics.py --metrics=fid50k_full --data=~/datasets/ffhq-1024x1024.zip --mirror=1 \\
+    python calc_metrics.py --metrics=fid50k_full --data=~/datasets/ffhq-1024x1024.zip --mirrorx=1 \\
         --network=https://api.ngc.nvidia.com/v2/models/nvidia/research/stylegan3/versions/1/files/stylegan3-t-ffhq-1024x1024.pkl
 
     \b
@@ -155,8 +156,10 @@ def calc_metrics(ctx, network_pkl, metrics, data, mirror, gpus, verbose):
     # Finalize dataset options.
     args.dataset_kwargs.resolution = args.G.img_resolution
     args.dataset_kwargs.use_labels = (args.G.c_dim != 0)
-    if mirror is not None:
-        args.dataset_kwargs.xflip = mirror
+    if mirrorx is not None:
+        args.dataset_kwargs.xflip = mirrorx
+    if mirrory is not None:
+        args.dataset_kwargs.yflip = mirrory
 
     # Print dataset options.
     if args.verbose:
