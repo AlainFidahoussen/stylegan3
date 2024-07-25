@@ -13,6 +13,7 @@ import re
 from typing import List, Optional, Tuple, Union
 
 import click
+from tqdm import tqdm
 import dnnlib
 import numpy as np
 import PIL.Image
@@ -120,8 +121,8 @@ def generate_images(
             print ('warn: --class=lbl ignored when running on an unconditional network')
 
     # Generate images.
-    for seed_idx, seed in enumerate(seeds):
-        print('Generating image for seed %d (%d/%d) ...' % (seed, seed_idx, len(seeds)))
+    for seed_idx, seed in enumerate(tqdm(seeds)):
+        # print('Generating image for seed %d (%d/%d) ...' % (seed, seed_idx, len(seeds)))
         z = torch.from_numpy(np.random.RandomState(seed).randn(1, G.z_dim)).to(device)
 
         # Construct an inverse rotation/translation matrix and pass to the generator.  The
@@ -133,8 +134,11 @@ def generate_images(
             G.synthesis.input.transform.copy_(torch.from_numpy(m))
 
         img = G(z, label, truncation_psi=truncation_psi, noise_mode=noise_mode)
-        img = (img.permute(0, 2, 3, 1) * 127.5 + 128).clamp(0, 255).to(torch.uint8)
-        PIL.Image.fromarray(img[0].cpu().numpy(), 'RGB').save(f'{outdir}/seed{seed:04d}.png')
+        #img = (img.permute(0, 2, 3, 1) * 127.5 + 128).clamp(0, 255).to(torch.uint8)
+        #PIL.Image.fromarray(img[0].cpu().numpy(), 'RGB').save(f'{outdir}/seed{seed:04d}.png')
+
+        img = (img.permute(0, 1, 2, 3) * 127.5 + 128).clamp(0, 255).to(torch.uint8)
+        PIL.Image.fromarray(img[0].cpu().numpy()[0]).save(f'{outdir}/{seed:04d}_seed.png')
 
 
 #----------------------------------------------------------------------------
